@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
- "scripts": {
+"scripts": {
   "start": "node server.js",
-  "test": "echo \"No tests yet — skipping.\" && exit 0"
-},
+  "test": "echo \"No tests yet — skipping.\" && exit 0",
+  "build": "echo \"Building project (dummy build step)\""
+}
+,
   "keywords": [],
   "author": "",
   "license": "ISC",
