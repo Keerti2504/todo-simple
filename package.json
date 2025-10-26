@@ -3,19 +3,18 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-"scripts": {
-  "start": "node server.js",
-  "test": "echo \"No tests yet — skipping.\" && exit 0",
-  "build": "echo \"Building project (dummy build step)\""
-}
-,
+  "scripts": {
+    "start": "node server.js",
+    "test": "jest --coverage --runInBand",
+    "build": "echo \"Building project (dummy build step)\""
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "body-parser": "^2.2.0",
     "express": "^5.1.0",
-    "uuid": "^13.0.0"
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "eslint": "^9.38.0",
