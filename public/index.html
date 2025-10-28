@@ -1,27 +1,233 @@
 <!doctype html>
-<html>
-<head><meta charset="utf-8"><title>Todo</title></head>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Smart To-Do App</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #74EBD5, #ACB6E5);
+      height: 100vh;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .container {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 420px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+    }
+
+    h1 { text-align: center; color: #333; }
+
+    .input-area {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    input {
+      flex: 1;
+      padding: 0.6rem;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      outline: none;
+    }
+
+    input:focus { border-color: #2f80ed; }
+
+    button {
+      padding: 0.6rem 1rem;
+      background: #2f80ed;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:hover { background: #1d5fbf; }
+
+    ul { list-style: none; padding: 0; }
+    li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f9f9f9;
+      padding: 0.6rem;
+      margin-bottom: 0.5rem;
+      border-radius: 8px;
+    }
+
+    li.done span { text-decoration: line-through; color: #888; }
+
+    .actions button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1rem;
+      color: #666;
+    }
+
+    .actions button:hover { color: #000; }
+
+    #auth, #app { display: none; }
+    .error { color: red; text-align: center; margin-bottom: 0.5rem; }
+  </style>
+</head>
 <body>
-  <h1>Todo (simple)</h1>
-  <input id="t" placeholder="new task" />
-  <button id="add">Add</button>
-  <ul id="list"></ul>
-<script>
-async function load(){ 
-  const r=await fetch('/api/todos'); const data=await r.json();
-  const ul=document.getElementById('list'); ul.innerHTML='';
-  data.forEach(t=>{
-    const li=document.createElement('li'); li.textContent=t.title + (t.done ? ' ✅': '');
-    ul.appendChild(li);
-  });
-}
-document.getElementById('add').onclick = async ()=> {
-  const v=document.getElementById('t').value;
-  if(!v) return;
-  await fetch('/api/todos', {method:'POST',headers:{'content-type':'application/json'}, body: JSON.stringify({title:v})});
-  document.getElementById('t').value=''; load();
-}
-load();
-</script>
+  <div class="container">
+    <h1>📝 Smart To-Do</h1>
+
+    <!-- AUTH SECTION -->
+    <div id="auth">
+      <div class="error" id="err"></div>
+      <input id="user" placeholder="Username">
+      <input id="pass" type="password" placeholder="Password">
+      <div class="input-area">
+        <button id="login">Login</button>
+        <button id="signup">Signup</button>
+      </div>
+    </div>
+
+    <!-- TODO APP SECTION -->
+    <div id="app">
+      <button id="logout" style="float:right;">🚪 Logout</button>
+      <div class="input-area">
+        <input id="t" placeholder="Add a new task..." />
+        <button id="add">Add</button>
+      </div>
+      <ul id="list"></ul>
+    </div>
+  </div>
+
+  <script>
+    const API = '/api';
+    const token = localStorage.getItem('token');
+    const authDiv = document.getElementById('auth');
+    const appDiv = document.getElementById('app');
+    const err = document.getElementById('err');
+
+    function showApp() {
+      authDiv.style.display = 'none';
+      appDiv.style.display = 'block';
+      load();
+    }
+
+    function showAuth() {
+      appDiv.style.display = 'none';
+      authDiv.style.display = 'block';
+    }
+
+    if (token) showApp();
+    else showAuth();
+
+    document.getElementById('login').onclick = async () => {
+      const username = document.getElementById('user').value.trim();
+      const password = document.getElementById('pass').value.trim();
+      err.textContent = '';
+      try {
+        const r = await fetch(API + '/login', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'login failed');
+        localStorage.setItem('token', data.token);
+        showApp();
+      } catch (e) {
+        err.textContent = e.message;
+      }
+    };
+
+    document.getElementById('signup').onclick = async () => {
+      const username = document.getElementById('user').value.trim();
+      const password = document.getElementById('pass').value.trim();
+      err.textContent = '';
+      try {
+        const r = await fetch(API + '/signup', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'signup failed');
+        err.style.color = 'green';
+        err.textContent = 'Signup successful! Now login.';
+      } catch (e) {
+        err.textContent = e.message;
+      }
+    };
+
+    document.getElementById('logout').onclick = () => {
+      localStorage.removeItem('token');
+      showAuth();
+    };
+
+    async function load() {
+      const r = await fetch(API + '/todos', {
+        headers: { Authorization: 'Bearer ' + localStorage.getItem('token') }
+      });
+      if (r.status === 401 || r.status === 403) {
+        showAuth();
+        return;
+      }
+      const data = await r.json();
+      const ul = document.getElementById('list');
+      ul.innerHTML = '';
+      data.forEach(t => {
+        const li = document.createElement('li');
+        li.className = t.done ? 'done' : '';
+        li.innerHTML = `
+          <span>${t.title}</span>
+          <div class="actions">
+            <button onclick="toggle('${t.id}', ${!t.done})">${t.done ? '↩️' : '✅'}</button>
+            <button onclick="del('${t.id}')">🗑️</button>
+          </div>
+        `;
+        ul.appendChild(li);
+      });
+    }
+
+    async function toggle(id, done) {
+      await fetch(API + '/todos/' + id, {
+        method: 'PUT',
+        headers: {
+          'content-type': 'application/json',
+          Authorization: 'Bearer ' + localStorage.getItem('token')
+        },
+        body: JSON.stringify({ done })
+      });
+      load();
+    }
+
+    async function del(id) {
+      await fetch(API + '/todos/' + id, {
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer ' + localStorage.getItem('token') }
+      });
+      load();
+    }
+
+    document.getElementById('add').onclick = async () => {
+      const v = document.getElementById('t').value.trim();
+      if (!v) return;
+      await fetch(API + '/todos', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          Authorization: 'Bearer ' + localStorage.getItem('token')
+        },
+        body: JSON.stringify({ title: v })
+      });
+      document.getElementById('t').value = '';
+      load();
+    };
+  </script>
 </body>
 </html>
